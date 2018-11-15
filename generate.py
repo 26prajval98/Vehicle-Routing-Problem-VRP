@@ -24,7 +24,7 @@ for i in range(10):
         d = randint(10, capacity)
         print(str(i) + " " + str(j) + " " + str(d), file = f)
 
-call(["nvcc", "-o", "serial", "vrpSerial.cu"])
+call(["g++", "-o", "serial", "vrp.cpp"])
 
 call(["nvcc", "-o", "parallel", "vrp.cu"])
 
