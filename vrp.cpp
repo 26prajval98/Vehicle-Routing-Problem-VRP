@@ -278,7 +278,7 @@ int main(int argc, char ** argv){
     
     ofstream serial("timeSerial.time", ios::app);
 
-    serial << elapsed_secs << " " << argv[2] << endl;
+    serial << argv[2] << " " << elapsed_secs << endl;
     cout << "Time Taken: " << elapsed_secs << endl;
 
     return 0;
