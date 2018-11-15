@@ -240,17 +240,14 @@ int main(int argc, char ** argv){
         int start = hostSavingsMatrixRecord[i].start;
         int end = hostSavingsMatrixRecord[i].end;
 
-        cout << "-------" << endl;
-
-        int demandStart = hostN[i].d;
-        int demandEnd = hostN[i].d;
+        int demandStart = hostN[start].d;
+        int demandEnd = hostN[end].d;
 
         if (demandStart + demandEnd <= vehicleCapacity){
 
             cout << nodesProcessed << endl;
 
             if(hostResultDict[start].val == 0 && hostResultDict[end].val == 0){
-                cout << "CASE 1" << endl;
                 hostRouteList[routesAdded].nodes_in_route[0]  = start;
                 hostRouteList[routesAdded].nodes_in_route[1]  = end;
                 hostRouteList[routesAdded].nodesAdded = 2;
@@ -264,7 +261,6 @@ int main(int argc, char ** argv){
                 routesAdded += 1;
             }
             else if(hostResultDict[start].val == 1 && hostResultDict[end].val == 0){
-                cout << "CASE 2" << endl;
                 int indexOfRoute = hostResultDict[start].routeIndex;
                 int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
                 int total_demand = 0;
@@ -284,7 +280,6 @@ int main(int argc, char ** argv){
                 }
             }
             else if (hostResultDict[start].val == 0 && hostResultDict[end].val == 1){
-                cout << "CASE 3" << endl;
                 int indexOfRoute = hostResultDict[end].routeIndex;
                 int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
                 int total_demand = 0;
@@ -302,9 +297,7 @@ int main(int argc, char ** argv){
                         nodesProcessed += 1;
                     }
                 }
-            }     
-            cout << start << end << endl;
-            cout << hostResultDict[start].val << hostResultDict[end].val << endl;
+            } 
         }
     }
 

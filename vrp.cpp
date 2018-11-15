@@ -153,8 +153,8 @@ int main(){
         int start = hostSavingsMatrixRecord[i].start;
         int end = hostSavingsMatrixRecord[i].end;
 
-        int demandStart = hostN[i].d;
-        int demandEnd = hostN[i].d;
+        int demandStart = hostN[start].d;
+        int demandEnd = hostN[end].d;
 
         if (demandStart + demandEnd <= vehicleCapacity){
 
