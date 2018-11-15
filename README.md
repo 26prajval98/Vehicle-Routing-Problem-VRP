@@ -1,2 +1,2 @@
 # Vehicle Routing Problem (VRP)
-Vehicle Routing Problem in CUDA-C++ (based on own understanding)
+Vehicle Routing Problem in CUDA-C++ (METHOD OF CLARKE AND WRIGHT)
