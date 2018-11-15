@@ -62,7 +62,7 @@ void getCostMatrix(Node* nodeInfos, int *costMatrix, int rows, int cols){
         for(int y = 0; y < cols; y++){
             Node tempNode0 = nodeInfos[x];
             Node tempNode1 = nodeInfos[y];
-            costMatrix[x*cols + y] = (x == y) ? 0 : int(sqrt((float)(((tempNode0.x-tempNode1.x)*(tempNode0.x - tempNode1.x))+((tempNode0.y - tempNode1.y)*(tempNode0.y - tempNode1.y)))));
+            costMatrix[x*cols + y] = (x == y) ? 0 : 1 + int(sqrt((float)(((tempNode0.x-tempNode1.x)*(tempNode0.x - tempNode1.x))+((tempNode0.y - tempNode1.y)*(tempNode0.y - tempNode1.y)))));
         }
     }
 }
@@ -72,10 +72,10 @@ int main(){
     int no_of_nodes;
     int vehicleCapacity;
 
-    cout << "No of nodes " << endl;
+    std::cout << "No of nodes " << endl;
     cin >> no_of_nodes;
 
-    cout << "Capacity of each vehicle " << endl;
+    std::cout << "Capacity of each vehicle " << endl;
     cin >> vehicleCapacity;
 
     // Vector of (no_of_nodes + 1) * (no_of_nodes + 1) size
@@ -101,7 +101,7 @@ int main(){
     hostN[0].d = 0;
 
     for(int i=0; i < no_of_nodes; i++){
-        cout <<"Node Info for node (x, y, demand)" <<endl << "Node: " << i+1 << endl;
+        std::cout <<"Node Info for node (x, y, demand)" <<endl << "Node: " << i+1 << endl;
         hostN[i+1].node = i+1;
         cin >> hostN[i+1].x;
         cin >> hostN[i+1].y;
@@ -129,6 +129,10 @@ int main(){
 
     sortSavings(hostSavingsMatrixRecord, count);
 
+    for(int i=0; i < count; i++){
+        std::cout << hostSavingsMatrixRecord[i].s_between << endl;
+    }
+
     int nodeCount = no_of_nodes + 1, maxRouteCount = no_of_nodes;
     keyVal * hostResultDict =  new keyVal[nodeCount];
 
@@ -149,17 +153,14 @@ int main(){
         int start = hostSavingsMatrixRecord[i].start;
         int end = hostSavingsMatrixRecord[i].end;
 
-        cout << "-------" << endl;
-
         int demandStart = hostN[i].d;
         int demandEnd = hostN[i].d;
 
         if (demandStart + demandEnd <= vehicleCapacity){
 
-            cout << nodesProcessed << endl;
+            std::cout << nodesProcessed << endl;
 
             if(hostResultDict[start].val == 0 && hostResultDict[end].val == 0){
-                cout << "CASE 1" << endl;
                 hostRouteList[routesAdded].nodes_in_route[0]  = start;
                 hostRouteList[routesAdded].nodes_in_route[1]  = end;
                 hostRouteList[routesAdded].nodesAdded = 2;
@@ -173,7 +174,6 @@ int main(){
                 routesAdded += 1;
             }
             else if(hostResultDict[start].val == 1 && hostResultDict[end].val == 0){
-                cout << "CASE 2" << endl;
                 int indexOfRoute = hostResultDict[start].routeIndex;
                 int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
                 int total_demand = 0;
@@ -193,7 +193,6 @@ int main(){
                 }
             }
             else if (hostResultDict[start].val == 0 && hostResultDict[end].val == 1){
-                cout << "CASE 3" << endl;
                 int indexOfRoute = hostResultDict[end].routeIndex;
                 int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
                 int total_demand = 0;
@@ -212,8 +211,8 @@ int main(){
                     }
                 }
             }
-            cout << start << end << endl;
-            cout << hostResultDict[start].val << hostResultDict[end].val << endl;
+            std::cout << start << end << endl;
+            std::cout << hostResultDict[start].val << hostResultDict[end].val << endl;
         }
     }
 
@@ -233,11 +232,11 @@ int main(){
 		int node1 = 0;
 		int node2 = 0;
 		int decisionMaker = 0;
-		printf("\nRoute\t\t: %d\n", i);
-		printf("NodesAdded\t: %d\n\n[\t", temproute.nodesAdded);
+		std::cout << "\nRoute\t\t:" << i << endl;
+		std::cout <<"NodesAdded\t: "<<  temproute.nodesAdded <<endl << endl << "[\t";
 
         for (int j = 0; j < temproute.nodesAdded; j++){
-            printf("%d \t", temproute.nodes_in_route[j]);
+            std::cout << temproute.nodes_in_route[j] << "\t" ;
             if (decisionMaker == 0){
                 if (node1 != 0) {
                     node1 = temproute.nodes_in_route[j];
@@ -257,14 +256,14 @@ int main(){
         if (node2 == 0){
             localSavings = *(hostSavingsMatrix + node1);
         }
-        cout << "]" << endl;
+        std::cout << "]" << endl;
         decisionMaker = 0;
         totalSavings += localSavings;
-        cout << "Savings: " << localSavings;
+        std::cout << "Savings: " << localSavings;
     }
 
-    cout << "\nTotal Nodes Processed:" << nodesProcessed;
-	cout << "\nTotal Savings:" << totalSavings << endl;
+    std::cout << "\nTotal Nodes Processed:" << nodesProcessed;
+	std::cout << "\nTotal Savings:" << totalSavings << endl;
 
     return 0;
 }

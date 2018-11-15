@@ -200,7 +200,7 @@ int main(){
 
             cout << nodesProcessed << endl;
 
-            if(hostResultDict[start].val == 0  hostResultDict[end].val == 0){
+            if(hostResultDict[start].val == 0 && hostResultDict[end].val == 0){
                 cout << "CASE 1" << endl;
                 hostRouteList[routesAdded].nodes_in_route[0]  = start;
                 hostRouteList[routesAdded].nodes_in_route[1]  = end;
@@ -275,11 +275,11 @@ int main(){
 		int node1 = 0;
 		int node2 = 0;
 		int decisionMaker = 0;
-		printf("\nRoute\t\t: %d\n", i);
-		printf("NodesAdded\t: %d\n\n[\t", temproute.nodesAdded);
+		std::cout << "\nRoute\t\t:" << i << endl;
+		cout <<"NodesAdded\t: "<<  temproute.nodesAdded <<endl << endl << "[\t";
 
         for (int j = 0; j < temproute.nodesAdded; j++){
-            printf("%d \t", temproute.nodes_in_route[j]);				 
+            cout << temproute.nodes_in_route[j] << "\t" ;
             if (decisionMaker == 0){
                 if (node1 != 0) {
                     node1 = temproute.nodes_in_route[j];
@@ -299,15 +299,15 @@ int main(){
         if (node2 == 0){
             localSavings = *(hostSavingsMatrix + node1);
         }
-        printf("]\n");
+        cout << "]" << endl;
         decisionMaker = 0;
         totalSavings += localSavings;
-        printf("Savings: %d\n", localSavings);
+        cout << "Savings: " << localSavings;    
     }
     
-    printf("\nTotal Nodes Processed: %d\n", nodesProcessed);
-	printf("\nTotal Savings: %d\n", totalSavings);
-
+    cout << "\nTotal Nodes Processed:" << nodesProcessed;
+    cout << "\nTotal Savings:" << totalSavings << endl;
+    
     cudaFree(deviceCostMatrix);
     cudaFree(deviceN);
     cudaFree(deviceSavingsMatrix);
