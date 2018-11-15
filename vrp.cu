@@ -1,7 +1,18 @@
 #include<iostream>
 #include<string.h>
 #include<math.h>
+
+//  For cuda
 #include "cuda_runtime.h"
+#include <device_launch_parameters.h>
+#include <device_functions.h>
+
+// For thrust
+#include <thrust/adjacent_difference.h>
+#include <thrust/binary_search.h>
+#include <thrust/copy.h>
+#include <thrust/device_vector.h>
+#include <thrust/iterator/counting_iterator.h>
 #include <thrust/sort.h>
 
 #define X_THREADS 32
@@ -10,7 +21,7 @@
 
 using namespace std;
 
-typedef struct node{    
+typedef struct NODE{    
     int node;
     // Instead of x and y co-ordinates costs can be given
     int x;
@@ -42,7 +53,7 @@ typedef struct keyVal{
 } keyVal;
 
 __global__ void
-calculateSavings(int* costMatrix, int* savingsMatrix, int rows, int cols)
+calculateSavings(int* costMatrix, int* hostSavingsMatrix, int rows, int cols)
 {
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -51,35 +62,35 @@ calculateSavings(int* costMatrix, int* savingsMatrix, int rows, int cols)
 		int valx = costMatrix[x];
 		int valy = costMatrix[y];
 		int valxy = costMatrix[x + y * rows];
-		*(savingsMatrix + x + y * rows) = (x != y && x > y) ? valx + valy - valxy : 0;
+		hostSavingsMatrix[x + y * rows] = (x != y && x > y) ? valx + valy - valxy : 0;
     }
 }
 
 struct OBCmp {
     __host__ __device__
     bool operator()(const Savings& o1, const Savings& o2) {
-        return o1.s_between < o2.s_between;
+        return o1.s_between > o2.s_between;
     }
 };
 
 void
 sortSavings(Savings * obs, int N){
-    thrust::sort(obs, obs+N, OBCmp)
+    thrust::sort(obs, obs+N, OBCmp());
 }
 
 __global__ void
-getCostMatrix(struct Node* nodeInfos, int *costMatrix, int rows, int cols){
+getCostMatrix(Node* nodeInfos, int *costMatrix, int rows, int cols){
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
 
-	if (x < rows & y < cols) {
+	if (y < rows & x < cols) {
 		Node tempNode0 = nodeInfos[x];
         Node tempNode1 = nodeInfos[y];
 
         // Cuda math functions
         // refer https://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH__INTRINSIC__CAST.html
-		*(costMatrix + x*cols + y) = (x == y) ? 0 : __float2uint_ru(__fsqrt_ru((float)(((tempNode0.xCoOrd-tempNode1.xCoOrd)*(tempNode0.xCoOrd - tempNode1.xCoOrd))+((tempNode0.yCoOrd - tempNode1.yCoOrd)*(tempNode0.yCoOrd - tempNode1.yCoOrd)))));
-	}
+		costMatrix[x*cols + y] = (x == y) ? 0 : __float2uint_ru(__fsqrt_ru((float)(((tempNode0.x-tempNode1.x)*(tempNode0.x - tempNode1.x))+((tempNode0.y - tempNode1.y)*(tempNode0.y - tempNode1.y)))));
+    }
 }
 
 int main(){
@@ -107,7 +118,6 @@ int main(){
     int * deviceSavingsMatrix;
 
     Savings * hostSavingsMatrixRecord;
-    Savings * deviceSavingsMatrixRecord;
 
     hostCostMatrix = new int[size];
     cudaMalloc((void **)&deviceCostMatrix, size*sizeof(int));
@@ -121,8 +131,8 @@ int main(){
     hostN[0].y = 0;
     hostN[0].d = 0;
     
-    for(int i=0; i<no_of_nodes; i++){
-        cout <<"Node Info for node (x, y, demand)" << i+1 << endl;
+    for(int i=0; i < no_of_nodes; i++){
+        cout <<"Node Info for node (x, y, demand)" <<endl << "Node: " << i+1 << endl;
         hostN[i+1].node = i+1;
         cin >> hostN[i+1].x;
         cin >> hostN[i+1].y;
@@ -135,24 +145,26 @@ int main(){
     
 
     // Copy Node Info to device 
-    cudaMemCpy(deviceN, hostN, (no_of_nodes + 1) * sizeof(Node), cudaMemcpyHostToDevice);
+    cudaMemcpy(deviceN, hostN, (no_of_nodes + 1) * sizeof(Node), cudaMemcpyHostToDevice);
     getCostMatrix <<< dimGrid, dimBlock >>>(deviceN, deviceCostMatrix, rows, cols);
     // Copy cost to host
-    cudaMemCpy(hostCostMatrix, deviceCostMatrix, size * sizeof(int *), cudaMemcpyDeviceToHost)
-
+    cudaMemcpy(hostCostMatrix, deviceCostMatrix, size * sizeof(int), cudaMemcpyDeviceToHost);
 
     hostSavingsMatrix = new int[size];
     cudaMalloc((void **)&deviceSavingsMatrix, size*sizeof(int));
-    calculateSavings <<<dimGrid, dimBlock>>>(deviceCostMatrix, deviceSavingsMatrix, rows, cols)
+    calculateSavings <<<dimGrid, dimBlock>>>(deviceCostMatrix, deviceSavingsMatrix, rows, cols);
     // Copy savings to host
-    cudaMemCpy(hostSavingsMatrix, deviceSavingsMatrix, size * sizeof(int *), cudaMemcpyDeviceToHost)
+    cudaMemcpy(hostSavingsMatrix, deviceSavingsMatrix, size * sizeof(int), cudaMemcpyDeviceToHost);
 
     int count = 0;
+
+    hostSavingsMatrixRecord = new Savings[rows * cols];
+
     for (int i = 1; i < rows-1; ++i){
 		for (int j = i + 1; j < cols; ++j) {
             hostSavingsMatrixRecord[count].start = i;
             hostSavingsMatrixRecord[count].end = j;
-            hostSavingsMatrixRecord[count].s_between = *(hostSavingsMatrix + i*cols + j);
+            hostSavingsMatrixRecord[count].s_between = hostSavingsMatrix[i*cols + j];
             count++;    
 		}
     }
@@ -162,33 +174,31 @@ int main(){
     int nodeCount = no_of_nodes + 1, maxRouteCount = no_of_nodes;
     keyVal * hostResultDict =  new keyVal[nodeCount];
     
-    // Which root for which node
-    Route * hostRouteList = new Route[maxRouteCount];
-
-    for (int i = 0; i < node_count; i++){
+    // Which root for which nodeA
 		hostResultDict[i].key = hostN[i].node;
 		hostResultDict[i].val = 0;
     }
     
     int nodesProcessed = 0;
     int routesAdded = 0;
+    int totalSavings = 0;
     
     // For each savings
-    for(int i - 0; i < count; i++){
+    for(int i = 0; i < count; i++){
         int start = hostSavingsMatrixRecord[i].start;
         int end = hostSavingsMatrixRecord[i].end;
 
-        int demandStart = hostN[i].demand;
-        int demandEnd = hostN[i].demand;
+        int demandStart = hostN[i].d;
+        int demandEnd = hostN[i].d;
 
         if(nodesProcessed !=0){
-            if(demandStart + demandEnd < vehicleCapacity){
+            if(demandStart + demandEnd <= vehicleCapacity){
                 int indexOfRoute = hostResultDict[start].routeIndex;
                 int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
                 int total_demand = 0;
                 total_demand += demandEnd;
                 for (int temp_i = 0; temp_i < numberOfNodesInRoute; temp_i++){
-                    total_demand += hostN[hostRouteList[indexOfRoute].nodes_in_route[temp_i]].demand;
+                    total_demand += hostN[hostRouteList[indexOfRoute].nodes_in_route[temp_i]].d;
                 }
                 if (total_demand <= vehicleCapacity){
                     if (hostResultDict[start].indexOfnodeInRouteInResultArray == 0 || hostResultDict[start].indexOfnodeInRouteInResultArray == (hostRouteList[indexOfRoute].nodesAdded - 1)){
@@ -207,7 +217,7 @@ int main(){
 					int total_demand = 0;
 					total_demand += demandStart;
 					for (int temp_i = 0; temp_i < numberOfNodesInRoute; temp_i++){
-						total_demand += hostN[hostRouteList[indexOfRoute].nodes_in_route[temp_i]].demand;
+						total_demand += hostN[hostRouteList[indexOfRoute].nodes_in_route[temp_i]].d;
 					}
 					if (total_demand <= vehicleCapacity){
 						if (hostResultDict[end].indexOfnodeInRouteInResultArray == 0 || hostResultDict[end].indexOfnodeInRouteInResultArray == (hostRouteList[indexOfRoute].nodesAdded - 1)){
@@ -238,23 +248,23 @@ int main(){
         }
         else{
 			if (demandStart + demandEnd <= vehicleCapacity){
-				hostRouteList[routesAdded].nodes_in_route[0]  = edge_i;
-				hostRouteList[routesAdded].nodes_in_route[1]  = edge_j;
+				hostRouteList[routesAdded].nodes_in_route[0]  = start;
+				hostRouteList[routesAdded].nodes_in_route[1]  = end;
 				hostRouteList[routesAdded].nodesAdded = 2;
-				hostResultDict[edge_i].val = 1;
-				hostResultDict[edge_j].val = 1;
-				hostResultDict[edge_i].routeIndex = routesAdded;
-				hostResultDict[edge_j].routeIndex = routesAdded;
-				hostResultDict[edge_i].indexOfnodeInRouteInResultArray = 0;
-				hostResultDict[edge_j].indexOfnodeInRouteInResultArray = 1;
+				hostResultDict[start].val = 1;
+				hostResultDict[end].val = 1;
+				hostResultDict[start].routeIndex = routesAdded;
+				hostResultDict[end].routeIndex = routesAdded;
+				hostResultDict[start].indexOfnodeInRouteInResultArray = 0;
+				hostResultDict[end].indexOfnodeInRouteInResultArray = 1;
 				nodesProcessed += 2;
 				routesAdded += 1;
 			}
         }
         
-        for (int i = 1; i < node_count; i++){
-            if (hostResultDict[i].val == 0){
-                hostRouteList[routesAdded].nodes_in_route[0] = hostN[i].node;
+        for (int j = 1; j < nodeCount; j++){
+            if (hostResultDict[j].val == 0){
+                hostRouteList[routesAdded].nodes_in_route[0] = hostN[j].node;
                 hostRouteList[routesAdded].nodesAdded = 1;
                 nodesProcessed += 1;
                 routesAdded += 1;
@@ -277,7 +287,7 @@ int main(){
             if (decisionMaker == 0){
                 if (node1 != 0) {
                     node1 = temproute.nodes_in_route[j];
-                    localSavings += *(savingsMatrix + node2*columns + node1);
+                    localSavings += *(hostSavingsMatrix + node2*cols + node1);
                 }
                 else{
                     node1 = temproute.nodes_in_route[j];
@@ -287,11 +297,11 @@ int main(){
             else{
                 node2 = temproute.nodes_in_route[j];
                 decisionMaker = 0;
-                localSavings += *(savingsMatrix + node1*columns + node2);
+                localSavings += *(hostSavingsMatrix + node1*cols + node2);
             }
         }
         if (node2 == 0){
-            localSavings = *(savingsMatrix + node1);
+            localSavings = *(hostSavingsMatrix + node1);
         }
         printf("]\n");
         decisionMaker = 0;
@@ -305,8 +315,7 @@ int main(){
     cudaFree(deviceCostMatrix);
     cudaFree(deviceN);
     cudaFree(deviceSavingsMatrix);
-    cudaFree(deviceSavingsMatrixRecord);
 
-    return;
+    return 0;
 }
 
