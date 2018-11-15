@@ -78,6 +78,11 @@ sortSavings(Savings * obs, int N){
     thrust::sort(obs, obs+N, OBCmp());
 }
 
+// Odd or even sort can also be used
+// It is just thrust sort is very well optimised and gives the best results
+
+
+
 __global__ void
 getCostMatrix(Node* nodeInfos, int *costMatrix, int rows, int cols){
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -307,7 +312,7 @@ int main(){
     
     cout << "\nTotal Nodes Processed:" << nodesProcessed;
     cout << "\nTotal Savings:" << totalSavings << endl;
-    
+
     cudaFree(deviceCostMatrix);
     cudaFree(deviceN);
     cudaFree(deviceSavingsMatrix);
