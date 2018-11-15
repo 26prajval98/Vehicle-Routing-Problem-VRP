@@ -77,4 +77,6 @@ getCostMatrix(struct Node* nodeInfos, int *costMatrix, int rows, int columns){
 
 int main(){
 
+    
+
 }
