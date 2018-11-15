@@ -191,11 +191,31 @@ int main(){
         int start = hostSavingsMatrixRecord[i].start;
         int end = hostSavingsMatrixRecord[i].end;
 
+        cout << "-------" << endl;
+
         int demandStart = hostN[i].d;
         int demandEnd = hostN[i].d;
 
-        if(hostResultDict[start].val != 0 || hostResultDict[end].val != 0){
-            if(demandStart + demandEnd <= vehicleCapacity){
+        if (demandStart + demandEnd <= vehicleCapacity){
+
+            cout << nodesProcessed << endl;
+
+            if(hostResultDict[start].val == 0  hostResultDict[end].val == 0){
+                cout << "CASE 1" << endl;
+                hostRouteList[routesAdded].nodes_in_route[0]  = start;
+                hostRouteList[routesAdded].nodes_in_route[1]  = end;
+                hostRouteList[routesAdded].nodesAdded = 2;
+                hostResultDict[start].val = 1;
+                hostResultDict[end].val = 1;
+                hostResultDict[start].routeIndex = routesAdded;
+                hostResultDict[end].routeIndex = routesAdded;
+                hostResultDict[start].indexOfnodeInRouteInResultArray = 0;
+                hostResultDict[end].indexOfnodeInRouteInResultArray = 1;
+                nodesProcessed += 2;
+                routesAdded += 1;
+            }
+            else if(hostResultDict[start].val == 1 && hostResultDict[end].val == 0){
+                cout << "CASE 2" << endl;
                 int indexOfRoute = hostResultDict[start].routeIndex;
                 int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
                 int total_demand = 0;
@@ -213,52 +233,39 @@ int main(){
                         nodesProcessed += 1;
                     }
                 }
-
-                else if (hostResultDict[start].val == 0 && hostResultDict[end].val == 1){
-					int indexOfRoute = hostResultDict[end].routeIndex;
-					int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
-					int total_demand = 0;
-					total_demand += demandStart;
-					for (int temp_i = 0; temp_i < numberOfNodesInRoute; temp_i++){
-						total_demand += hostN[hostRouteList[indexOfRoute].nodes_in_route[temp_i]].d;
-					}
-					if (total_demand <= vehicleCapacity){
-						if (hostResultDict[end].indexOfnodeInRouteInResultArray == 0 || hostResultDict[end].indexOfnodeInRouteInResultArray == (hostRouteList[indexOfRoute].nodesAdded - 1)){
-							hostRouteList[indexOfRoute].nodes_in_route[numberOfNodesInRoute] = start;
-							hostRouteList[indexOfRoute].nodesAdded += 1;
-							hostResultDict[start].val = 1;
-							hostResultDict[start].routeIndex = indexOfRoute;
-							hostResultDict[start].indexOfnodeInRouteInResultArray = numberOfNodesInRoute;
-							nodesProcessed += 1;
-						}
-					}
+            }
+            else if (hostResultDict[start].val == 0 && hostResultDict[end].val == 1){
+                cout << "CASE 3" << endl;
+                int indexOfRoute = hostResultDict[end].routeIndex;
+                int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
+                int total_demand = 0;
+                total_demand += demandStart;
+                for (int temp_i = 0; temp_i < numberOfNodesInRoute; temp_i++){
+                    total_demand += hostN[hostRouteList[indexOfRoute].nodes_in_route[temp_i]].d;
                 }
-            }
+                if (total_demand <= vehicleCapacity){
+                    if (hostResultDict[end].indexOfnodeInRouteInResultArray == 0 || hostResultDict[end].indexOfnodeInRouteInResultArray == (hostRouteList[indexOfRoute].nodesAdded - 1)){
+                        hostRouteList[indexOfRoute].nodes_in_route[numberOfNodesInRoute] = start;
+                        hostRouteList[indexOfRoute].nodesAdded += 1;
+                        hostResultDict[start].val = 1;
+                        hostResultDict[start].routeIndex = indexOfRoute;
+                        hostResultDict[start].indexOfnodeInRouteInResultArray = numberOfNodesInRoute;
+                        nodesProcessed += 1;
+                    }
+                }
+            }     
+            cout << start << end << endl;
+            cout << hostResultDict[start].val << hostResultDict[end].val << endl;
         }
-        else{
-			if (demandStart + demandEnd <= vehicleCapacity){
-				hostRouteList[routesAdded].nodes_in_route[0]  = start;
-				hostRouteList[routesAdded].nodes_in_route[1]  = end;
-				hostRouteList[routesAdded].nodesAdded = 2;
-				hostResultDict[start].val = 1;
-				hostResultDict[end].val = 1;
-				hostResultDict[start].routeIndex = routesAdded;
-				hostResultDict[end].routeIndex = routesAdded;
-				hostResultDict[start].indexOfnodeInRouteInResultArray = 0;
-				hostResultDict[end].indexOfnodeInRouteInResultArray = 1;
-				nodesProcessed += 2;
-				routesAdded += 1;
-			}
+    }
+
+    for (int j = 1; j < nodeCount; j++){
+        if (hostResultDict[j].val == 0){
+            hostRouteList[routesAdded].nodes_in_route[0] = hostN[j].node;
+            hostRouteList[routesAdded].nodesAdded = 1;
+            nodesProcessed += 1;
+            routesAdded += 1;
         }
-        
-        for (int j = 1; j < nodeCount; j++){
-            if (hostResultDict[j].val == 0){
-                hostRouteList[routesAdded].nodes_in_route[0] = hostN[j].node;
-                hostRouteList[routesAdded].nodesAdded = 1;
-                nodesProcessed += 1;
-                routesAdded += 1;
-            }
-	    }
     }
 
     for (int i = 0; i < routesAdded; i++){
