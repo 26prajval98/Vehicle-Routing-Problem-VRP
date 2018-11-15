@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string.h>
 #include <math.h>
+#include <fstream>
 
 //  For cuda
 #include "cuda_runtime.h"
@@ -53,8 +54,7 @@ typedef struct keyVal{
 } keyVal;
 
 __global__ void
-calculateSavings(int* costMatrix, int* hostSavingsMatrix, int rows, int cols)
-{
+calculateSavings(int* costMatrix, int* hostSavingsMatrix, int rows, int cols){
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     
@@ -137,16 +137,21 @@ getCostMatrix(Node* nodeInfos, int *costMatrix, int rows, int cols){
     }
 }
 
-int main(){
+int main(int argc, char ** argv){
+    
+    string file = argv[1];
+    ifstream testfile(file);
+
 
     int no_of_nodes;
     int vehicleCapacity; 
 
-    cout << "No of nodes " << endl;
-    cin >> no_of_nodes;
+    testfile >> no_of_nodes >> vehicleCapacity;
+    cout << "No of nodes: " << no_of_nodes << endl;
+    // cin >> no_of_nodes;
 
-    cout << "Capacity of each vehicle " << endl;
-    cin >> vehicleCapacity;
+    cout << "Capacity of each vehicle: " << vehicleCapacity << endl;
+    // cin >> vehicleCapacity;
 
     // Vector of (no_of_nodes + 1) * (no_of_nodes + 1) size
     int rows = (no_of_nodes + 1), cols = (no_of_nodes + 1);
@@ -178,9 +183,9 @@ int main(){
     for(int i=0; i < no_of_nodes; i++){
         cout <<"Node Info for node (x, y, demand)" <<endl << "Node: " << i+1 << endl;
         hostN[i+1].node = i+1;
-        cin >> hostN[i+1].x;
-        cin >> hostN[i+1].y;
-        cin >> hostN[i+1].d;
+        testfile >> hostN[i+1].x;
+        testfile >> hostN[i+1].y;
+        testfile >> hostN[i+1].d;
     }
 
     
@@ -358,4 +363,3 @@ int main(){
 
     return 0;
 }
-
