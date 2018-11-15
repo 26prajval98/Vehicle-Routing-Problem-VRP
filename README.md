@@ -17,4 +17,14 @@ The cycles if i and j are NOT united in sep 4, if the nodes belong to the same c
 capacity is exceeded OR either node is an interior node of the cycle.
 Improvement: Optimize the tour of each vehicle with a TSP heuristic
 
+Time:
+
+| Nodes | Serial | Parallel |
+|-------|--------|----------|
+| 5     | 42     | 318      |
+| 10    | 345    | 343      |
+| 50    | 3945   | 387      |
+| 100   | 12686  | 412      |
+|       |        |          |
+
 Check http://www.mafy.lut.fi/study/DiscreteOpt/CH6.pdf
