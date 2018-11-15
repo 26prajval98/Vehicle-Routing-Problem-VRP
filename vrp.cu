@@ -1,5 +1,6 @@
 #include<iostream>
 #include<string.h>
+#include<math.h>
 #include "cuda_runtime.h"
 #include <thrust/sort.h>
 
@@ -9,36 +10,44 @@
 
 using namespace std;
 
-typedef struct node{
-    int node,
-    int x,
-    int y,
-    int d
+typedef struct node{    
+    int node;
+    // Instead of x and y co-ordinates costs can be given
+    int x;
+    int y;
+    int d;
 } Node;
 
 typedef struct savings{
-    int start,
-    int end,
-    int s_between
+    int start;
+    int end;
+    int s_between;
 } Savings;
 
 typedef struct route{
-    int nodes[1000],
-    int no
+    int nodes_in_route[1024];
+    int nodesAdded;
 } Route;
 
-struct Demand{
+typedef struct Demand{
 	int node;
 	int d;
-};
+} Demand;
+
+typedef struct keyVal{
+	int key;
+	int val;
+	int routeIndex;
+	int indexOfnodeInRouteInResultArray;
+} keyVal;
 
 __global__ void
-calculateSavings(int* costMatrix, int* savingsMatrix, int rows, int columns)
+calculateSavings(int* costMatrix, int* savingsMatrix, int rows, int cols)
 {
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     
-	if (y < rows && x < columns) {		
+	if (y < rows && x < cols) {		
 		int valx = costMatrix[x];
 		int valy = costMatrix[y];
 		int valxy = costMatrix[x + y * rows];
@@ -59,24 +68,245 @@ sortSavings(Savings * obs, int N){
 }
 
 __global__ void
-getCostMatrix(struct Node* nodeInfos, int *costMatrix, int rows, int columns){
+getCostMatrix(struct Node* nodeInfos, int *costMatrix, int rows, int cols){
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
 
-	if (x < rows & y < columns) {
+	if (x < rows & y < cols) {
 		Node tempNode0 = nodeInfos[x];
         Node tempNode1 = nodeInfos[y];
 
         // Cuda math functions
         // refer https://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH__INTRINSIC__CAST.html
-		*(costMatrix + x*columns + y) = (x == y) ? 0 : __float2uint_ru(__fsqrt_ru((float)(((tempNode0.xCoOrd-tempNode1.xCoOrd)*(tempNode0.xCoOrd - tempNode1.xCoOrd))+((tempNode0.yCoOrd - tempNode1.yCoOrd)*(tempNode0.yCoOrd - tempNode1.yCoOrd)))));
+		*(costMatrix + x*cols + y) = (x == y) ? 0 : __float2uint_ru(__fsqrt_ru((float)(((tempNode0.xCoOrd-tempNode1.xCoOrd)*(tempNode0.xCoOrd - tempNode1.xCoOrd))+((tempNode0.yCoOrd - tempNode1.yCoOrd)*(tempNode0.yCoOrd - tempNode1.yCoOrd)))));
 	}
 }
 
-
-
 int main(){
 
+    int no_of_nodes;
+    int vehicleCapacity; 
+
+    cout << "No of nodes " << endl;
+    cin >> no_of_nodes;
+
+    cout << "Capacity of each vehicle " << endl;
+    cin >> vehicleCapacity;
+
+    // Vector of (no_of_nodes + 1) * (no_of_nodes + 1) size
+    int rows = (no_of_nodes + 1), cols = (no_of_nodes + 1);
+    int size = rows * cols;
+
+    Node * hostN; 
+    Node * deviceN;
+
+    int * hostCostMatrix;
+    int * deviceCostMatrix;
+    
+    int * hostSavingsMatrix;
+    int * deviceSavingsMatrix;
+
+    Savings * hostSavingsMatrixRecord;
+    Savings * deviceSavingsMatrixRecord;
+
+    hostCostMatrix = new int[size];
+    cudaMalloc((void **)&deviceCostMatrix, size*sizeof(int));
+    
+    // Assume we are starting from (0,0)
+    hostN = new Node[no_of_nodes + 1];
+    cudaMalloc((void **)&deviceN, (no_of_nodes + 1)*sizeof(Node));
+
+    hostN[0].node = 0;
+    hostN[0].x = 0;
+    hostN[0].y = 0;
+    hostN[0].d = 0;
+    
+    for(int i=0; i<no_of_nodes; i++){
+        cout <<"Node Info for node (x, y, demand)" << i+1 << endl;
+        hostN[i+1].node = i+1;
+        cin >> hostN[i+1].x;
+        cin >> hostN[i+1].y;
+        cin >> hostN[i+1].d;
+    }
+
+    
+    dim3 dimBlock(X_THREADS, Y_THREADS);
+    dim3 dimGrid((((cols + SIZE - 1)/SIZE) + 1), (((rows + SIZE - 1) / SIZE) + 1));
     
 
+    // Copy Node Info to device 
+    cudaMemCpy(deviceN, hostN, (no_of_nodes + 1) * sizeof(Node), cudaMemcpyHostToDevice);
+    getCostMatrix <<< dimGrid, dimBlock >>>(deviceN, deviceCostMatrix, rows, cols);
+    // Copy cost to host
+    cudaMemCpy(hostCostMatrix, deviceCostMatrix, size * sizeof(int *), cudaMemcpyDeviceToHost)
+
+
+    hostSavingsMatrix = new int[size];
+    cudaMalloc((void **)&deviceSavingsMatrix, size*sizeof(int));
+    calculateSavings <<<dimGrid, dimBlock>>>(deviceCostMatrix, deviceSavingsMatrix, rows, cols)
+    // Copy savings to host
+    cudaMemCpy(hostSavingsMatrix, deviceSavingsMatrix, size * sizeof(int *), cudaMemcpyDeviceToHost)
+
+    int count = 0;
+    for (int i = 1; i < rows-1; ++i){
+		for (int j = i + 1; j < cols; ++j) {
+            hostSavingsMatrixRecord[count].start = i;
+            hostSavingsMatrixRecord[count].end = j;
+            hostSavingsMatrixRecord[count].s_between = *(hostSavingsMatrix + i*cols + j);
+            count++;    
+		}
+    }
+    
+    sortSavings(hostSavingsMatrixRecord, count);
+
+    int nodeCount = no_of_nodes + 1, maxRouteCount = no_of_nodes;
+    keyVal * hostResultDict =  new keyVal[nodeCount];
+    
+    // Which root for which node
+    Route * hostRouteList = new Route[maxRouteCount];
+
+    for (int i = 0; i < node_count; i++){
+		hostResultDict[i].key = hostN[i].node;
+		hostResultDict[i].val = 0;
+    }
+    
+    int nodesProcessed = 0;
+    int routesAdded = 0;
+    
+    // For each savings
+    for(int i - 0; i < count; i++){
+        int start = hostSavingsMatrixRecord[i].start;
+        int end = hostSavingsMatrixRecord[i].end;
+
+        int demandStart = hostN[i].demand;
+        int demandEnd = hostN[i].demand;
+
+        if(nodesProcessed !=0){
+            if(demandStart + demandEnd < vehicleCapacity){
+                int indexOfRoute = hostResultDict[start].routeIndex;
+                int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
+                int total_demand = 0;
+                total_demand += demandEnd;
+                for (int temp_i = 0; temp_i < numberOfNodesInRoute; temp_i++){
+                    total_demand += hostN[hostRouteList[indexOfRoute].nodes_in_route[temp_i]].demand;
+                }
+                if (total_demand <= vehicleCapacity){
+                    if (hostResultDict[start].indexOfnodeInRouteInResultArray == 0 || hostResultDict[start].indexOfnodeInRouteInResultArray == (hostRouteList[indexOfRoute].nodesAdded - 1)){
+                        hostRouteList[indexOfRoute].nodes_in_route[numberOfNodesInRoute] = end;
+                        hostRouteList[indexOfRoute].nodesAdded += 1;
+                        hostResultDict[end].val = 1;
+                        hostResultDict[end].routeIndex = indexOfRoute;
+                        hostResultDict[end].indexOfnodeInRouteInResultArray = numberOfNodesInRoute;
+                        nodesProcessed += 1;
+                    }
+                }
+
+                else if (hostResultDict[start].val == 0 && hostResultDict[end].val == 1){
+					int indexOfRoute = hostResultDict[end].routeIndex;
+					int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
+					int total_demand = 0;
+					total_demand += demandStart;
+					for (int temp_i = 0; temp_i < numberOfNodesInRoute; temp_i++){
+						total_demand += hostN[hostRouteList[indexOfRoute].nodes_in_route[temp_i]].demand;
+					}
+					if (total_demand <= vehicleCapacity){
+						if (hostResultDict[end].indexOfnodeInRouteInResultArray == 0 || hostResultDict[end].indexOfnodeInRouteInResultArray == (hostRouteList[indexOfRoute].nodesAdded - 1)){
+							hostRouteList[indexOfRoute].nodes_in_route[numberOfNodesInRoute] = start;
+							hostRouteList[indexOfRoute].nodesAdded += 1;
+							hostResultDict[start].val = 1;
+							hostResultDict[start].routeIndex = indexOfRoute;
+							hostResultDict[start].indexOfnodeInRouteInResultArray = numberOfNodesInRoute;
+							nodesProcessed += 1;
+						}
+					}
+                }
+                else if (hostResultDict[start].val == 0 && hostResultDict[end].val == 0){
+					hostRouteList[routesAdded].nodes_in_route[0] = start;
+					hostRouteList[routesAdded].nodes_in_route[1] = end;
+					hostRouteList[routesAdded].nodesAdded = 2;
+					hostResultDict[start].val = 1;
+					hostResultDict[end].val = 1;
+					hostResultDict[start].routeIndex = routesAdded;
+					hostResultDict[end].routeIndex = routesAdded;
+					hostResultDict[start].indexOfnodeInRouteInResultArray = 0;
+					hostResultDict[end].indexOfnodeInRouteInResultArray = 1;
+					nodesProcessed += 2;
+					routesAdded += 1;
+				}
+            }
+
+        }
+        else{
+			if (demandStart + demandEnd <= vehicleCapacity){
+				hostRouteList[routesAdded].nodes_in_route[0]  = edge_i;
+				hostRouteList[routesAdded].nodes_in_route[1]  = edge_j;
+				hostRouteList[routesAdded].nodesAdded = 2;
+				hostResultDict[edge_i].val = 1;
+				hostResultDict[edge_j].val = 1;
+				hostResultDict[edge_i].routeIndex = routesAdded;
+				hostResultDict[edge_j].routeIndex = routesAdded;
+				hostResultDict[edge_i].indexOfnodeInRouteInResultArray = 0;
+				hostResultDict[edge_j].indexOfnodeInRouteInResultArray = 1;
+				nodesProcessed += 2;
+				routesAdded += 1;
+			}
+        }
+        
+        for (int i = 1; i < node_count; i++){
+            if (hostResultDict[i].val == 0){
+                hostRouteList[routesAdded].nodes_in_route[0] = hostN[i].node;
+                hostRouteList[routesAdded].nodesAdded = 1;
+                nodesProcessed += 1;
+                routesAdded += 1;
+            }
+	    }
+    }
+
+    for (int i = 0; i < routesAdded; i++){
+
+		Route temproute = hostRouteList[i];
+		int localSavings = 0;
+		int node1 = 0;
+		int node2 = 0;
+		int decisionMaker = 0;
+		printf("\nRoute\t\t: %d\n", i);
+		printf("NodesAdded\t: %d\n\n[\t", temproute.nodesAdded);
+
+        for (int j = 0; j < temproute.nodesAdded; j++){
+            printf("%d \t", temproute.nodes_in_route[j]);				 
+            if (decisionMaker == 0){
+                if (node1 != 0) {
+                    node1 = temproute.nodes_in_route[j];
+                    localSavings += *(savingsMatrix + node2*columns + node1);
+                }
+                else{
+                    node1 = temproute.nodes_in_route[j];
+                }
+                decisionMaker = 1;
+            }
+            else{
+                node2 = temproute.nodes_in_route[j];
+                decisionMaker = 0;
+                localSavings += *(savingsMatrix + node1*columns + node2);
+            }
+        }
+        if (node2 == 0){
+            localSavings = *(savingsMatrix + node1);
+        }
+        printf("]\n");
+        decisionMaker = 0;
+        totalSavings += localSavings;
+        printf("Savings: %d\n", localSavings);
+    }
+    
+    printf("\nTotal Nodes Processed: %d\n", nodesProcessed);
+	printf("\nTotal Savings: %d\n", totalSavings);
+
+    cudaFree(deviceCostMatrix);
+    cudaFree(deviceN);
+    cudaFree(deviceSavingsMatrix);
+    cudaFree(deviceSavingsMatrixRecord);
+
+    return;
 }
+
