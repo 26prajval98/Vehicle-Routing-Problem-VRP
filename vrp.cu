@@ -352,7 +352,7 @@ int main(int argc, char ** argv){
     // cout << "\nTotal Savings:" << totalSavings << endl;
     
     clock_t end = clock();
-    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+    double elapsed_secs = double(end - begin) / (CLOCKS_PER_SEC * 1000);
 
     testfile.close();
     

@@ -13,7 +13,7 @@ n = []
 
 for i in range(10):
     f = open("tester"+str(i)+".tester", "w")
-    nodes = randint(5, 100)
+    nodes = randint(1000, 1024)
     n.append(str(nodes))
     capacity = randint(50, 100)
     print(str(nodes), file = f)
@@ -24,24 +24,19 @@ for i in range(10):
         d = randint(10, capacity)
         print(str(i) + " " + str(j) + " " + str(d), file = f)
 
-call(["g++", "-o", "serial", "vrp.cpp"])
+call(["nvcc", "-o", "serial", "vrpSerial.cu"])
 
 call(["nvcc", "-o", "parallel", "vrp.cu"])
 
 for i in range(10):
-    print("Serial code " + str(i + 1) + "/" + 10 + " Done")
+    print("Serial code " + str(i + 1) + "/" + str(10) + " Done")
     FNULL = open(os.devnull, 'w')
+    print(n[i])
     s = "tester"+str(i)+".tester"
-    call(["serial.exe", n[i], str(i)], stdout=FNULL, stderr=STDOUT)
+    call(["serial.exe", n[i], str(i)])
 
 for i in range(10):
-    print("Serial code " + str(i + 1) + "/" + 10 + " Done")
-    FNULL = open(os.devnull, 'w')
-    s = "tester"+str(i)+".tester"
-    call(["parallel.exe", n[i], str(i)], stdout=FNULL, stderr=STDOUT)
-
-for i in range(10):
-    print("Parallel code " + str(i + 1) + "/" + 10 + " Done")
+    print("Parallel code " + str(i + 1) + "/" + str(10) + " Done")
     FNULL = open(os.devnull, 'w')
     s = "tester"+str(i)+".tester"
     call(["parallel.exe", n[i], str(i)], stdout=FNULL, stderr=STDOUT)
