@@ -81,6 +81,45 @@ sortSavings(Savings * obs, int N){
 // Odd or even sort can also be used
 // It is just thrust sort is very well optimised and gives the best results
 
+/*
+Odd Even Sort Algorithm which was earlier used
+
+__global__ void
+sortSavings(Savings * savingsMatrixRecord, int count) {
+	int i = threadIdx.x + blockIdx.x * blockDim.x;
+	int l;
+	if (count % 2 == 0)
+		l = count / 2;
+	else
+		l = (count / 2) + 1;
+
+	for (int j = 0; j<l; j++){
+
+        //even phase
+		if ((!(i & 1)) && (i<(count - 1))){
+			if (savingsMatrixRecord[i].s_between < savingsMatrixRecord[i + 1].s_between){
+				Savings  temp = savingsMatrixRecord[i];
+				savingsMatrixRecord[i] = savingsMatrixRecord[i + 1];
+				savingsMatrixRecord[i + 1] = temp;
+			}
+		}
+		__syncthreads();
+
+        //odd phase 
+		if ((i & 1) && (i<(count - 1))){
+			if (savingsMatrixRecord[i].s_between < savingsMatrixRecord[i + 1].s_between)
+			{
+				Savings  temp = savingsMatrixRecord[i];
+				savingsMatrixRecord[i] = savingsMatrixRecord[i + 1];
+				savingsMatrixRecord[i + 1] = temp;
+			}
+		}
+		__syncthreads();
+
+	}
+}
+*/
+
 
 
 __global__ void
@@ -184,7 +223,7 @@ int main(){
 		hostResultDict[i].key = hostN[i].node;
 		hostResultDict[i].val = 0;
     }
-
+    
     Route * hostRouteList = new Route[maxRouteCount];
     
     int nodesProcessed = 0;
