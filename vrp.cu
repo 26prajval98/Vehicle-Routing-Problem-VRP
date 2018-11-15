@@ -175,9 +175,12 @@ int main(){
     keyVal * hostResultDict =  new keyVal[nodeCount];
     
     // Which root for which nodeA
+    for(int i=0; i<nodeCount; ++i){
 		hostResultDict[i].key = hostN[i].node;
 		hostResultDict[i].val = 0;
     }
+
+    Route * hostRouteList = new Route[maxRouteCount];
     
     int nodesProcessed = 0;
     int routesAdded = 0;
@@ -191,7 +194,7 @@ int main(){
         int demandStart = hostN[i].d;
         int demandEnd = hostN[i].d;
 
-        if(nodesProcessed !=0){
+        if(hostResultDict[start].val != 0 || hostResultDict[end].val != 0){
             if(demandStart + demandEnd <= vehicleCapacity){
                 int indexOfRoute = hostResultDict[start].routeIndex;
                 int numberOfNodesInRoute = hostRouteList[indexOfRoute].nodesAdded;
@@ -230,21 +233,7 @@ int main(){
 						}
 					}
                 }
-                else if (hostResultDict[start].val == 0 && hostResultDict[end].val == 0){
-					hostRouteList[routesAdded].nodes_in_route[0] = start;
-					hostRouteList[routesAdded].nodes_in_route[1] = end;
-					hostRouteList[routesAdded].nodesAdded = 2;
-					hostResultDict[start].val = 1;
-					hostResultDict[end].val = 1;
-					hostResultDict[start].routeIndex = routesAdded;
-					hostResultDict[end].routeIndex = routesAdded;
-					hostResultDict[start].indexOfnodeInRouteInResultArray = 0;
-					hostResultDict[end].indexOfnodeInRouteInResultArray = 1;
-					nodesProcessed += 2;
-					routesAdded += 1;
-				}
             }
-
         }
         else{
 			if (demandStart + demandEnd <= vehicleCapacity){
