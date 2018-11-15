@@ -1,7 +1,9 @@
 #include <iostream>
 #include <string.h>
 #include <math.h>
+#include <fstream>
 #include <algorithm>
+#include <ctime>
 
 using namespace std;
 
@@ -67,16 +69,20 @@ void getCostMatrix(Node* nodeInfos, int *costMatrix, int rows, int cols){
     }
 }
 
-int main(){
+int main(int argc, char ** argv){
+    clock_t begin = clock();
 
+    string file = argv[1];
+    ifstream testfile(file.c_str());
+    
     int no_of_nodes;
     int vehicleCapacity;
 
     std::cout << "No of nodes " << endl;
-    cin >> no_of_nodes;
+    testfile >> no_of_nodes;
 
     std::cout << "Capacity of each vehicle " << endl;
-    cin >> vehicleCapacity;
+    testfile >> vehicleCapacity;
 
     // Vector of (no_of_nodes + 1) * (no_of_nodes + 1) size
     int rows = (no_of_nodes + 1), cols = (no_of_nodes + 1);
@@ -103,9 +109,9 @@ int main(){
     for(int i=0; i < no_of_nodes; i++){
         std::cout <<"Node Info for node (x, y, demand)" <<endl << "Node: " << i+1 << endl;
         hostN[i+1].node = i+1;
-        cin >> hostN[i+1].x;
-        cin >> hostN[i+1].y;
-        cin >> hostN[i+1].d;
+        testfile >> hostN[i+1].x;
+        testfile >> hostN[i+1].y;
+        testfile >> hostN[i+1].d;
     }
 
     getCostMatrix(hostN, hostCostMatrix, no_of_nodes + 1, no_of_nodes + 1);
@@ -264,6 +270,16 @@ int main(){
 
     std::cout << "\nTotal Nodes Processed:" << nodesProcessed;
 	std::cout << "\nTotal Savings:" << totalSavings << endl;
+
+    clock_t end = clock();
+    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+
+    testfile.close();
+    
+    ofstream serial("timeSerial.time", ios::app);
+
+    serial << elapsed_secs << " " << argv[2] << endl;
+    cout << "Time Taken: " << elapsed_secs << endl;
 
     return 0;
 }

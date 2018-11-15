@@ -142,7 +142,6 @@ int main(int argc, char ** argv){
     string file = argv[1];
     ifstream testfile(file);
 
-
     int no_of_nodes;
     int vehicleCapacity; 
 
