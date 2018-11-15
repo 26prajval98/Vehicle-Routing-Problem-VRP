@@ -70,6 +70,7 @@ void getCostMatrix(Node* nodeInfos, int *costMatrix, int rows, int cols){
 }
 
 int main(int argc, char ** argv){
+
     clock_t begin = clock();
 
     string file = argv[1];
@@ -77,11 +78,11 @@ int main(int argc, char ** argv){
     
     int no_of_nodes;
     int vehicleCapacity;
-
-    std::cout << "No of nodes " << endl;
+    
+    // std::cout << "No of nodes " << endl;
     testfile >> no_of_nodes;
 
-    std::cout << "Capacity of each vehicle " << endl;
+    // std::cout << "Capacity of each vehicle " << endl;
     testfile >> vehicleCapacity;
 
     // Vector of (no_of_nodes + 1) * (no_of_nodes + 1) size
@@ -107,7 +108,7 @@ int main(int argc, char ** argv){
     hostN[0].d = 0;
 
     for(int i=0; i < no_of_nodes; i++){
-        std::cout <<"Node Info for node (x, y, demand)" <<endl << "Node: " << i+1 << endl;
+        // std::cout <<"Node Info for node (x, y, demand)" <<endl << "Node: " << i+1 << endl;
         hostN[i+1].node = i+1;
         testfile >> hostN[i+1].x;
         testfile >> hostN[i+1].y;
@@ -136,7 +137,7 @@ int main(int argc, char ** argv){
     sortSavings(hostSavingsMatrixRecord, count);
 
     for(int i=0; i < count; i++){
-        std::cout << hostSavingsMatrixRecord[i].s_between << endl;
+        // std::cout << hostSavingsMatrixRecord[i].s_between << endl;
     }
 
     int nodeCount = no_of_nodes + 1, maxRouteCount = no_of_nodes;
@@ -164,7 +165,7 @@ int main(int argc, char ** argv){
 
         if (demandStart + demandEnd <= vehicleCapacity){
 
-            std::cout << nodesProcessed << endl;
+            // std::cout << nodesProcessed << endl;
 
             if(hostResultDict[start].val == 0 && hostResultDict[end].val == 0){
                 hostRouteList[routesAdded].nodes_in_route[0]  = start;
@@ -217,8 +218,8 @@ int main(int argc, char ** argv){
                     }
                 }
             }
-            std::cout << start << end << endl;
-            std::cout << hostResultDict[start].val << hostResultDict[end].val << endl;
+            // std::cout << start << end << endl;
+            // std::cout << hostResultDict[start].val << hostResultDict[end].val << endl;
         }
     }
 
@@ -238,11 +239,11 @@ int main(int argc, char ** argv){
 		int node1 = 0;
 		int node2 = 0;
 		int decisionMaker = 0;
-		std::cout << "\nRoute\t\t:" << i << endl;
-		std::cout <<"NodesAdded\t: "<<  temproute.nodesAdded <<endl << endl << "[\t";
+		// std::cout << "\nRoute\t\t:" << i << endl;
+		// std::cout <<"NodesAdded\t: "<<  temproute.nodesAdded <<endl << endl << "[\t";
 
         for (int j = 0; j < temproute.nodesAdded; j++){
-            std::cout << temproute.nodes_in_route[j] << "\t" ;
+            // std::cout << temproute.nodes_in_route[j] << "\t" ;
             if (decisionMaker == 0){
                 if (node1 != 0) {
                     node1 = temproute.nodes_in_route[j];
@@ -262,14 +263,14 @@ int main(int argc, char ** argv){
         if (node2 == 0){
             localSavings = *(hostSavingsMatrix + node1);
         }
-        std::cout << "]" << endl;
+        // std::cout << "]" << endl;
         decisionMaker = 0;
         totalSavings += localSavings;
-        std::cout << "Savings: " << localSavings;
+        // std::cout << "Savings: " << localSavings;
     }
 
-    std::cout << "\nTotal Nodes Processed:" << nodesProcessed;
-	std::cout << "\nTotal Savings:" << totalSavings << endl;
+    // std::cout << "\nTotal Nodes Processed:" << nodesProcessed;
+	// std::cout << "\nTotal Savings:" << totalSavings << endl;
 
     clock_t end = clock();
     double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
@@ -279,7 +280,9 @@ int main(int argc, char ** argv){
     ofstream serial("timeSerial.time", ios::app);
 
     serial << argv[2] << " " << elapsed_secs << endl;
-    cout << "Time Taken: " << elapsed_secs << endl;
+    // cout << "Time Taken: " << elapsed_secs << endl;
+
+    serial.close();
 
     return 0;
 }

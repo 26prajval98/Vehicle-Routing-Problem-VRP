@@ -1,6 +1,6 @@
 import os
 from random import randint
-from subprocess import call
+from subprocess import call, STDOUT
 
 if os.path.exists("timeSerial.time"):
     os.remove("timeSerial.time")
@@ -9,9 +9,12 @@ for i in range(10):
     if os.path.exists("tester"+str(i)+".tester"):
         os.remove("tester"+str(i)+".tester")
 
+n = []
+
 for i in range(10):
     f = open("tester"+str(i)+".tester", "w")
     nodes = randint(5, 100)
+    n.append(str(nodes))
     capacity = randint(50, 100)
     print(str(nodes), file = f)
     print(str(capacity), file = f)
@@ -23,6 +26,22 @@ for i in range(10):
 
 call(["g++", "-o", "serial", "vrp.cpp"])
 
+call(["nvcc", "-o", "parallel", "vrp.cu"])
+
 for i in range(10):
+    print("Serial code " + str(i + 1) + "/" + 10 + " Done")
+    FNULL = open(os.devnull, 'w')
     s = "tester"+str(i)+".tester"
-    call(["serial.exe", s, str(i)])
+    call(["serial.exe", n[i], str(i)], stdout=FNULL, stderr=STDOUT)
+
+for i in range(10):
+    print("Serial code " + str(i + 1) + "/" + 10 + " Done")
+    FNULL = open(os.devnull, 'w')
+    s = "tester"+str(i)+".tester"
+    call(["parallel.exe", n[i], str(i)], stdout=FNULL, stderr=STDOUT)
+
+for i in range(10):
+    print("Parallel code " + str(i + 1) + "/" + 10 + " Done")
+    FNULL = open(os.devnull, 'w')
+    s = "tester"+str(i)+".tester"
+    call(["parallel.exe", n[i], str(i)], stdout=FNULL, stderr=STDOUT)

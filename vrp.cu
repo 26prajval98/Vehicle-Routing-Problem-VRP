@@ -2,6 +2,7 @@
 #include <string.h>
 #include <math.h>
 #include <fstream>
+#include <ctime>
 
 //  For cuda
 #include "cuda_runtime.h"
@@ -138,18 +139,19 @@ getCostMatrix(Node* nodeInfos, int *costMatrix, int rows, int cols){
 }
 
 int main(int argc, char ** argv){
-    
+    clock_t begin = clock();
+
     string file = argv[1];
-    ifstream testfile(file);
+    ifstream testfile(file.c_str());
 
     int no_of_nodes;
     int vehicleCapacity; 
 
     testfile >> no_of_nodes >> vehicleCapacity;
-    cout << "No of nodes: " << no_of_nodes << endl;
+    // cout << "No of nodes: " << no_of_nodes << endl;
     // cin >> no_of_nodes;
 
-    cout << "Capacity of each vehicle: " << vehicleCapacity << endl;
+    // cout << "Capacity of each vehicle: " << vehicleCapacity << endl;
     // cin >> vehicleCapacity;
 
     // Vector of (no_of_nodes + 1) * (no_of_nodes + 1) size
@@ -180,7 +182,7 @@ int main(int argc, char ** argv){
     hostN[0].d = 0;
     
     for(int i=0; i < no_of_nodes; i++){
-        cout <<"Node Info for node (x, y, demand)" <<endl << "Node: " << i+1 << endl;
+        // cout <<"Node Info for node (x, y, demand)" <<endl << "Node: " << i+1 << endl;
         hostN[i+1].node = i+1;
         testfile >> hostN[i+1].x;
         testfile >> hostN[i+1].y;
@@ -244,7 +246,7 @@ int main(int argc, char ** argv){
 
         if (demandStart + demandEnd <= vehicleCapacity){
 
-            cout << nodesProcessed << endl;
+            // cout << nodesProcessed << endl;
 
             if(hostResultDict[start].val == 0 && hostResultDict[end].val == 0){
                 hostRouteList[routesAdded].nodes_in_route[0]  = start;
@@ -316,11 +318,11 @@ int main(int argc, char ** argv){
 		int node1 = 0;
 		int node2 = 0;
 		int decisionMaker = 0;
-		std::cout << "\nRoute\t\t:" << i << endl;
-		cout <<"NodesAdded\t: "<<  temproute.nodesAdded <<endl << endl << "[\t";
+		// std::cout << "\nRoute\t\t:" << i << endl;
+		// cout <<"NodesAdded\t: "<<  temproute.nodesAdded <<endl << endl << "[\t";
 
         for (int j = 0; j < temproute.nodesAdded; j++){
-            cout << temproute.nodes_in_route[j] << "\t" ;
+            // cout << temproute.nodes_in_route[j] << "\t" ;
             if (decisionMaker == 0){
                 if (node1 != 0) {
                     node1 = temproute.nodes_in_route[j];
@@ -340,18 +342,30 @@ int main(int argc, char ** argv){
         if (node2 == 0){
             localSavings = *(hostSavingsMatrix + node1);
         }
-        cout << "]" << endl;
+        // cout << "]" << endl;
         decisionMaker = 0;
         totalSavings += localSavings;
-        cout << "Savings: " << localSavings;    
+        // cout << "Savings: " << localSavings;    
     }
     
-    cout << "\nTotal Nodes Processed:" << nodesProcessed;
-    cout << "\nTotal Savings:" << totalSavings << endl;
+    // cout << "\nTotal Nodes Processed:" << nodesProcessed;
+    // cout << "\nTotal Savings:" << totalSavings << endl;
+    
+    clock_t end = clock();
+    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 
+    testfile.close();
+    
     cudaFree(deviceCostMatrix);
     cudaFree(deviceN);
     cudaFree(deviceSavingsMatrix);
+
+    ofstream parallel("timeParallel.time", ios::app);
+
+    parallel << argv[2] << " " << elapsed_secs << endl;
+    // cout << "Time Taken: " << elapsed_secs << endl;
+
+    parallel.close();
 
     return 0;
 }
