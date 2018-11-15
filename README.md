@@ -27,4 +27,7 @@ Time:
 | 100   | 12686  | 412      |
 |       |        |          |
 
+generate.py runs the code but due to enhanced c++ complilers caching makes them run really fast.
+Serial code was based on googles python code available online.
+
 Check http://www.mafy.lut.fi/study/DiscreteOpt/CH6.pdf
