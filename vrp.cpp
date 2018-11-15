@@ -241,7 +241,6 @@ int main(int argc, char ** argv){
 		int decisionMaker = 0;
 		// std::cout << "\nRoute\t\t:" << i << endl;
 		// std::cout <<"NodesAdded\t: "<<  temproute.nodesAdded <<endl << endl << "[\t";
-
         for (int j = 0; j < temproute.nodesAdded; j++){
             // std::cout << temproute.nodes_in_route[j] << "\t" ;
             if (decisionMaker == 0){
