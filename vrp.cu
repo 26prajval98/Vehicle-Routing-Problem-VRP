@@ -1,11 +1,11 @@
-#include<iostream>
-#include<string.h>
-#include<math.h>
+#include <iostream>
+#include <string.h>
+#include <math.h>
 
 //  For cuda
 #include "cuda_runtime.h"
-#include <device_launch_parameters.h>
-#include <device_functions.h>
+#include "device_launch_parameters.h"
+#include "device_functions.h"
 
 // For thrust
 #include <thrust/adjacent_difference.h>
